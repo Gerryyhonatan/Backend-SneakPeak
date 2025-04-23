@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import { encrypt } from "../utils/encryption";
+import {renderMailHtml, sendMail} from "../utils/mail/mail";
+import { EMAIL_SMTP_USER } from "../utils/env";
 
 export interface User {
     fullName: string;
@@ -10,6 +12,8 @@ export interface User {
     profilePicture: string;
     isActive: boolean;
     activationCode: string;
+    otp?: string;
+    otpExpiration?: Date;
 };
 
 
@@ -23,11 +27,13 @@ const UserSchema = new Schema<User>({
     },
     username: {
         type: Schema.Types.String,
-        required: true
+        required: true,
+        unique: true
     },
     email: {
         type: Schema.Types.String,
-        required: true
+        required: true,
+        unique: true
     },
     password: {
         type: Schema.Types.String,
@@ -48,6 +54,12 @@ const UserSchema = new Schema<User>({
     },
     activationCode: {
         type: Schema.Types.String
+    },
+    otp: {
+        type: Schema.Types.String
+    },
+    otpExpiration : {
+        type: Schema.Types.Date
     }
 }, {
     timestamps: true,
@@ -64,6 +76,8 @@ UserSchema.pre("save", function(next) {
 UserSchema.methods.toJSON = function() {
     const user = this.toObject();
     delete user.password;
+    delete user.otp;
+    delete user.otpExpiration;
     return user;
 };
 

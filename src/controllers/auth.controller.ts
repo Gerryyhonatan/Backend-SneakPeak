@@ -5,6 +5,9 @@ import UserModel from "../models/user.model";
 import { encrypt } from "../utils/encryption";
 import { generateToken } from "../utils/jwt";
 import { IReqUser } from "../middlewares/auth.middleware";
+import { generateOTP, getOtpExpiration, hashOtp } from "../utils/otp";
+import { renderMailHtml, sendMail } from "../utils/mail/mail";
+import { EMAIL_SMTP_USER } from "../utils/env";
 
 type TRegister = {
     fullName: string;
@@ -24,13 +27,25 @@ const registerValidateSchema = Yup.object({
     fullName: Yup.string().required(),
     username: Yup.string().required(),
     email: Yup.string().required(),
-    password: Yup.string().required(),
+    password: Yup.string().required().min(6, "Password must be at least 6 characters").test("at-least-one-uppercase-letter", "Contains at least one uppercase letter", (value) => {
+        if(!value) return false;
+        const regex = /^(?=.*[A-Z])/;
+        return regex.test(value);
+    }).test("at-least-one-number", "Contains at least one number", (value) => {
+        if(!value) return false;
+        const regex = /^(?=.*\d)/;
+        return regex.test(value);
+    }),
     confirmPassword: Yup.string().required().oneOf([Yup.ref("password"), ""], "Password not match"), // Jika password dan confirm password tidak sama maka akan error
 });
 
 export default {
     async register(req: Request, res: Response) {
         const { fullName, username, email, password, confirmPassword } = req.body as unknown as TRegister;
+        
+        const otp = generateOTP();
+        const hashedOtp = hashOtp(otp); // Kalau mau aman, simpan yang hashed
+        const otpExpiration = getOtpExpiration(10); // expired dalam 10 menit
 
         // Setiap request dari req body akan di validasi oleh registerValidateSchema
         try {
@@ -48,6 +63,17 @@ export default {
                 username,
                 email,
                 password,
+                otp: hashedOtp,
+                otpExpiration
+            });
+
+            // Kirimkan OTP yang asli (plain text) ke email
+            const htmlContent = await renderMailHtml('verify-registration.ejs', { username, otp }); // Render email content
+            await sendMail({
+                from: EMAIL_SMTP_USER,
+                to: email,
+                subject: 'Please verify your account',
+                html: htmlContent
             });
 
             res.status(200).json({
@@ -126,7 +152,7 @@ export default {
                 message: "Success get user profile",
                 data: result
             });
-            
+
         } catch (error) {
             const err = error as unknown as Error;
             res.status(400).json({
@@ -135,4 +161,36 @@ export default {
             })
         }
     },
+
+    async verifyOtp(req: Request, res: Response) {
+        const { email, otp } = req.body;
+    
+        try {
+            const user = await UserModel.findOne({ email });
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+    
+            if (user.isActive) {
+                return res.status(400).json({ message: "User already activated" });
+            }
+    
+            const isMatch = hashOtp(otp) === user.otp;
+            const isExpired = user.otpExpiration && user.otpExpiration < new Date();
+    
+            if (!isMatch || isExpired) {
+                return res.status(400).json({ message: "OTP invalid or expired" });
+            }
+    
+            user.isActive = true;
+            user.otp = undefined;
+            user.otpExpiration = undefined;
+            await user.save();
+    
+            res.status(200).json({ message: "Account verified successfully" });
+        } catch (error) {
+            const err = error as Error;
+            res.status(500).json({ message: err.message });
+        }
+    }
 };
