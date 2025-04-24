@@ -76,7 +76,7 @@ export default {
                 html: htmlContent
             });
 
-            res.status(200).json({
+            res.status(201).json({
                 message: "Success Registration",
                 data: result
             })
