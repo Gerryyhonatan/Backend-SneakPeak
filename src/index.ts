@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import router from "./routes/api";
 import db from "./utils/database";
+import cors from "cors";
 
 async function init() {
   try {
@@ -11,6 +12,7 @@ async function init() {
 
     const app = express();
 
+    app.use(cors())
     app.use(bodyParser.json());
 
     const PORT = 3000;
