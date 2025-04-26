@@ -68,6 +68,9 @@ const UserSchema = new Schema<User>({
 // Sebelum save apa dulu yang mau dilakukan
 UserSchema.pre("save", function(next) {
     const user = this;
+    if(!user.isModified("password")) {
+        return next();
+    }
     user.password = encrypt(user.password);
     next();
 });

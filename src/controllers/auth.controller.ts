@@ -36,7 +36,7 @@ const registerValidateSchema = Yup.object({
         const regex = /^(?=.*\d)/;
         return regex.test(value);
     }),
-    confirmPassword: Yup.string().required().oneOf([Yup.ref("password")], "Password not match"), // Jika password dan confirm password tidak sama maka akan error
+    confirmPassword: Yup.string().required().oneOf([Yup.ref("password"), ""], "Password not match"), // Jika password dan confirm password tidak sama maka akan error
 });
 
 export default {
