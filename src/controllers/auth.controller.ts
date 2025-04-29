@@ -9,6 +9,8 @@ import { generateOTP, getOtpExpiration, hashOtp } from "../utils/otp";
 import { renderMailHtml, sendMail } from "../utils/mail/mail";
 import { EMAIL_SMTP_USER } from "../utils/env";
 
+import {OAuth2Client} from "google-auth-library";
+
 type TRegister = {
     fullName: string;
     username: string;
@@ -39,12 +41,14 @@ const registerValidateSchema = Yup.object({
     confirmPassword: Yup.string().required().oneOf([Yup.ref("password"), ""], "Password not match"), // Jika password dan confirm password tidak sama maka akan error
 });
 
+const googleClient = new OAuth2Client();
+
 export default {
     async register(req: Request, res: Response) {
         const { fullName, username, email, password, confirmPassword } = req.body as unknown as TRegister;
         
         const otp = generateOTP();
-        const hashedOtp = hashOtp(otp); // Kalau mau aman, simpan yang hashed
+        const hashedOtp = hashOtp(otp); 
         const otpExpiration = getOtpExpiration(10); // expired dalam 10 menit
 
         // Setiap request dari req body akan di validasi oleh registerValidateSchema
@@ -191,6 +195,56 @@ export default {
         } catch (error) {
             const err = error as Error;
             res.status(500).json({ message: err.message });
+        }
+    },
+
+    async loginGoogle(req: Request, res: Response) {
+        const {idToken} = req.body;
+
+        try {
+            const ticket = await googleClient.verifyIdToken({
+                idToken,
+                audience: process.env.GOOGLE_CLIENT_ID
+            });
+
+            const payload = ticket.getPayload();
+            if(!payload) {
+                return res.status(401).json({
+                    message: "Invalid Google token",
+                    data: null
+                });
+            }
+
+            const {email, name, picture} = payload;
+
+            let user = await UserModel.findOne({email});
+
+            if(!user) {
+                user = await UserModel.create({
+                    email,
+                    fullName: name || "No Name",
+                    username: email?.split("@")[0],
+                    isActive: true,
+                    profilePicture: picture || "user.jpg",
+                    password: "",
+                    role: "user",
+                });
+            }
+
+            const token = generateToken({
+                id: user._id,
+                role: user.role,
+            });
+
+            res.status(200).json({
+                message: "Success Login",
+                data: token
+            });
+        } catch (error) {
+            res.status(400).json({
+                message: (error as Error).message,
+                data: null
+            })
         }
     }
 };

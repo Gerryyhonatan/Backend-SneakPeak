@@ -9,6 +9,7 @@ router.post("/auth/register", authController.register);
 router.post("/auth/login", authController.login);
 router.get("/auth/me", authMiddleware, authController.me);
 router.post("/auth/verify-otp", authController.verifyOtp);
+router.post("/auth/login-google", authController.loginGoogle);
 
 
 export default router;

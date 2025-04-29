@@ -12,5 +12,8 @@ export const EMAIL_SMTP_PORT: number = Number(process.env.EMAIL_SMTP_PORT) || 46
 export const EMAIL_SMTP_HOST: string = process.env.EMAIL_SMTP_HOST || "";
 export const EMAIL_SMTP_SERVICE_NAME: string = process.env.EMAIL_SMTP_SERVICE_NAME || "";
 
+export const GOOGLE_CLIENT_ID: string = process.env.GOOGLE_CLIENT_ID || "";
+export const GOOGLE_CLIENT_SECRET: string = process.env.GOOGLE_CLIENT_SECRET || "";
+
 export const CLIENT_HOST: string = process.env.CLIENT_HOST || "http://localhost:3001";
 
