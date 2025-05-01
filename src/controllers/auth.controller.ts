@@ -1,15 +1,15 @@
 import { Request, Response } from "express";
 import * as Yup from "yup";
-
 import UserModel from "../models/user.model";
 import { encrypt } from "../utils/encryption";
 import { generateToken } from "../utils/jwt";
-import { IReqUser } from "../middlewares/auth.middleware";
 import { generateOTP, getOtpExpiration, hashOtp } from "../utils/otp";
 import { renderMailHtml, sendMail } from "../utils/mail/mail";
 import { EMAIL_SMTP_USER } from "../utils/env";
 
 import {OAuth2Client} from "google-auth-library";
+import { IReqUser } from "../utils/interfaces";
+import response from "../utils/response";
 
 type TRegister = {
     fullName: string;
@@ -80,16 +80,10 @@ export default {
                 html: htmlContent
             });
 
-            res.status(201).json({
-                message: "Success Registration",
-                data: result
-            })
+            response.success(res, result, "Success Registration");
         } catch (error) {
-            const err = error as unknown as Error;
-            res.status(400).json({
-                message: err.message,
-                data: null
-            })
+
+            response.error(res, error, "Failed Registration");
         }
 
 
@@ -111,20 +105,14 @@ export default {
             });
 
             if(!userByIdentifier) {
-                return res.status(403).json({
-                    message: "User not found",
-                    data: null
-                });
+                return response.unauthorized(res, "User not found");
             };
 
             // Validasi password
             const validatePassword: boolean = encrypt(password) === userByIdentifier.password;
 
             if(!validatePassword) {
-                return res.status(403).json({
-                    message: "User not found",
-                    data: null
-                });
+                return response.unauthorized(res, "User not found");
             }
 
             // Untuk generate token
@@ -133,16 +121,9 @@ export default {
                 role: userByIdentifier.role,
             });
 
-            res.status(200).json({
-               message: "Success Login",
-               data: token 
-            });
+            response.success(res, token, "Login Success");
         } catch (error) {
-            const err = error as unknown as Error;
-            res.status(400).json({
-                message: err.message,
-                data: null
-            })
+            response.error(res, error, "Login Failed");
         }
     },
 
@@ -152,17 +133,10 @@ export default {
             const user = req.user;
             const result = await UserModel.findById(user?.id);
 
-            res.status(200).json({
-                message: "Success get user profile",
-                data: result
-            });
+            response.success(res, result, "Success get user profile");
 
         } catch (error) {
-            const err = error as unknown as Error;
-            res.status(400).json({
-                message: err.message,
-                data: null
-            })
+            response.error(res, error, "Failed get user profile");
         }
     },
 
@@ -172,18 +146,18 @@ export default {
         try {
             const user = await UserModel.findOne({ email });
             if (!user) {
-                return res.status(404).json({ message: "User not found" });
+                return response.unauthorized(res, "User not found");
             }
     
             if (user.isActive) {
-                return res.status(400).json({ message: "User already activated" });
+                return response.unauthorized(res, "User already activated");
             }
     
             const isMatch = hashOtp(otp) === user.otp;
             const isExpired = user.otpExpiration && user.otpExpiration < new Date();
     
             if (!isMatch || isExpired) {
-                return res.status(400).json({ message: "OTP invalid or expired" });
+                return response.unauthorized(res, "OTP invalid or expired");
             }
     
             user.isActive = true;
@@ -191,10 +165,10 @@ export default {
             user.otpExpiration = undefined;
             await user.save();
     
-            res.status(200).json({ message: "Account verified successfully" });
+            response.success(res, user, "Account verified successfully");
         } catch (error) {
             const err = error as Error;
-            res.status(500).json({ message: err.message });
+            response.error(res, error, err.message);
         }
     },
 
@@ -209,10 +183,7 @@ export default {
 
             const payload = ticket.getPayload();
             if(!payload) {
-                return res.status(401).json({
-                    message: "Invalid Google token",
-                    data: null
-                });
+                return response.unauthorized(res);
             }
 
             const {email, name, picture} = payload;
@@ -236,15 +207,9 @@ export default {
                 role: user.role,
             });
 
-            res.status(200).json({
-                message: "Success Login",
-                data: token
-            });
+            response.success(res, token, "Login Success");
         } catch (error) {
-            res.status(400).json({
-                message: (error as Error).message,
-                data: null
-            })
+            response.error(res, error, "Login Failed");
         }
     }
 };
