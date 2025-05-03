@@ -6,6 +6,7 @@ import mediaMiddleware from "../middlewares/media.middleware";
 import { ROLES } from "../utils/constant";
 import mediaController from "../controllers/media.controller";
 import categoryController from "../controllers/category.controller";
+import brandController from "../controllers/brand.controller";
 
 const router = express.Router();
 
@@ -25,5 +26,11 @@ router.get("/category", categoryController.findAll)
 router.get("/category/:id", categoryController.findOne)
 router.put("/category/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], categoryController.update)
 router.delete("/category/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], categoryController.remove)
+
+router.post("/brand", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.create);
+router.get("/brand", brandController.findAll);
+router.get("/brand/:id", brandController.findOne);
+router.put("/brand/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.update);
+router.delete("/brand/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.remove);
 
 export default router;
