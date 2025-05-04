@@ -7,6 +7,7 @@ import { ROLES } from "../utils/constant";
 import mediaController from "../controllers/media.controller";
 import categoryController from "../controllers/category.controller";
 import brandController from "../controllers/brand.controller";
+import sneakerController from "../controllers/sneaker.controller";
 
 const router = express.Router();
 
@@ -27,10 +28,17 @@ router.get("/category/:id", categoryController.findOne)
 router.put("/category/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], categoryController.update)
 router.delete("/category/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], categoryController.remove)
 
-router.post("/brand", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.create);
-router.get("/brand", brandController.findAll);
-router.get("/brand/:id", brandController.findOne);
-router.put("/brand/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.update);
-router.delete("/brand/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.remove);
+router.post("/brands", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.create);
+router.get("/brands", brandController.findAll);
+router.get("/brands/:id", brandController.findOne);
+router.put("/brands/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.update);
+router.delete("/brands/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], brandController.remove);
+
+router.post("/sneakers", [authMiddleware, aclMiddleware([ROLES.ADMIN])], sneakerController.create);
+router.get("/sneakers", sneakerController.findAll);
+router.get("/sneakers/:id", sneakerController.findOne);
+router.put("/sneakers/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], sneakerController.update);
+router.delete("/sneakers/:id", [authMiddleware, aclMiddleware([ROLES.ADMIN])], sneakerController.remove);
+router.get("/sneakers/:slug/slug", sneakerController.findOneBySlug);
 
 export default router;
