@@ -5,13 +5,18 @@ const Schema = mongoose.Schema;
 
 // DAO = Data Access Object
 export const categoryDAO = Yup.object({
-    name: Yup.string().required(), 
+    name: Yup.string().required(),
+    description: Yup.string().required(), 
 });
 
 export type Category = Yup.InferType<typeof categoryDAO>;
 
 const CategorySchema = new Schema<Category>({
     name: {
+        type: Schema.Types.String,
+        required: true,
+    },
+    description: {
         type: Schema.Types.String,
         required: true,
     }
